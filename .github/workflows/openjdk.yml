@@ -1,0 +1,64 @@
+name: Build OpenJDK
+
+on:
+  push:
+    paths:
+    - 'jdk.java'
+  
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: কোড ক্লোন করুন
+      uses: actions/checkout@v3
+
+    - name: প্রয়োজনীয় প্যাকেজ ইনস্টল করুন
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          libasound2-dev \
+          libcups2-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxext-dev \
+          libxrender-dev \
+          libxtst-dev \
+          libxt-dev \
+          libxrandr-dev \
+          libfontconfig1-dev \
+          libgtk-3-dev \
+          unzip \
+          zip \
+          autoconf \
+          make \
+          git \
+          ca-certificates \
+          wget \
+          curl
+
+    - name: OpenJDK সোর্স কোড ডাউনলোড করুন
+      run: |
+        git clone https://github.com/openjdk/jdk.git
+        cd jdk
+        git checkout jdk-17+35  # আপনি চাইলে অন্য ভার্সন নিতে পারেন
+
+    - name: Boot JDK সেটআপ করুন (JDK 16 ব্যবহার করে OpenJDK 17 build করা যাবে)
+      run: |
+        mkdir bootjdk
+        cd bootjdk
+        wget https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/36/GPL/openjdk-16_linux-x64_bin.tar.gz
+        tar -xzf openjdk-16_linux-x64_bin.tar.gz
+        echo "BOOT_JDK=$PWD/jdk-16" >> $GITHUB_ENV
+
+    - name: OpenJDK configure + build
+      run: |
+        cd jdk
+        bash configure --with-boot-jdk=$BOOT_JDK
+        make images
+
+    - name: Build সফল হলে ফলাফল দেখান
+      run: |
+        ls -l jdk/build/*/images/jdk
